@@ -1,0 +1,23 @@
+{
+  "name": "dbms_mini",
+  "version": "1.0.0",
+  "description": "dbms miniproject",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/shandroid19/dbms_mini.git"
+  },
+  "author": "lakshita and shanthanu",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/shandroid19/dbms_mini/issues"
+  },
+  "homepage": "https://github.com/shandroid19/dbms_mini#readme",
+  "dependencies": {
+    "express-generator": "^4.16.1",
+    "mysql": "^2.18.1"
+  }
+}
