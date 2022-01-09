@@ -5,6 +5,7 @@ router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 var config = require('../config')
 var mysql = require('mysql');
+var cors = require('./cors')
 const authenticate = require('../authenticate');
 
 var con = mysql.createConnection({
@@ -86,3 +87,5 @@ con.connect(function(err) { //to connect to the database
       });
     })
 })
+
+module.exports = router;

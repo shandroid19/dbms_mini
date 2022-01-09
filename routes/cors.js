@@ -1,7 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 
-const whitelist = ['http://localhost:3000','https://apis.google.com'];
+const whitelist = ['http://localhost:3000'];
 var corsOptionsDelegate = (req, callback) => {
     var corsOptions;
     if(whitelist.indexOf(req.header('Origin')) !== -1) {
@@ -10,6 +10,7 @@ var corsOptionsDelegate = (req, callback) => {
     else {
         corsOptions = { origin: false };
     }
+    // callback = (null,{origin:true})
     callback(null, corsOptions);
 };
 

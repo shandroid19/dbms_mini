@@ -5,6 +5,7 @@ router.use(bodyParser.urlencoded({ extended: false }));
 router.use(bodyParser.json());
 var config = require('../config')
 var jwt = require('jsonwebtoken');
+var cors = require('./cors')
 var bcrypt = require('bcryptjs');
 var mysql = require('mysql');
 
@@ -21,8 +22,20 @@ con.connect(function(err) { //to connect to the database
         console.log('using');
       });
 
-    router.post('/', function(req, res) {
-      console.log(req.body.password)
+    router.route('/checkname')
+    .post(cors.corsWithOptions,(req,res)=>{
+      var sql = "select * from user where username=?"
+      con.query(sql,[req.body.username],(err,result)=>{
+        if (result.length)
+        res.status(200).send({taken:true})
+        else
+        res.status(200).send({taken:false})
+        if (err) res.status(500).send({taken:false})
+      })
+    })
+
+    router.route('/signup')
+    .post(cors.corsWithOptions,(req, res)=>{
       var hashedPassword = bcrypt.hashSync(req.body.password, 8);
         var sql = "insert into user values ( ?,?,?,?,?,?)"
         var values = [req.body.username,hashedPassword,req.body.name,req.body.bio,req.body.dp,req.body.private]
@@ -36,7 +49,7 @@ con.connect(function(err) { //to connect to the database
         }).then((user, err)=>{
           if (err) return res.status(500).send("There was a problem registering the user.")
           // create a token
-          var token = jwt.sign({ username: user }, "shhhhhh", {
+          var token = jwt.sign({ username: user }, config.client_secret, {
             expiresIn: 86400 // expires in 24 hours
           });
           res.status(200).send({ auth: true, token: token });
