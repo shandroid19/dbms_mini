@@ -5,7 +5,6 @@ var config = require('../config')
 var mysql = require('mysql')
 var cors = require('./cors')
 
-
 var con = mysql.createConnection({
     host: "localhost",
     user: config.username,
@@ -18,16 +17,51 @@ con.connect(function(err) { //to connect to the database
       if (err) throw err;
         console.log('using');
       });
+
+      router.route('/home')
+      .options(cors.corsWithOptions,(req,res)=>{res.sendStatus(200)})
+      .post(cors.cors,authenticate,(req,res)=>{
+          const sql = ' select post.*,user.dp from post inner join user on post.username=user.username where post.username in (select followers.username from followers where follower=?);'
+        //   const sql = 'select * from post where username in (select username from followers where follower = ?)'
+          con.query(sql,[req.username],function (err,result1,field){
+            const sql2 = 'select count(*) as likes from likes where postid in (select postid from post where username in (select username from followers where follower=?)) group by postid;'
+            con.query(sql2,[req.username],function (err,result2,field){
+                console.log(result1,result2)
+                var lis = []
+                for(let i=0;i<result1.length;i++)
+                {
+                    var data = (Object.assign(result1[i],Object.assign({},result2[i])))
+                    lis.push(data);
+                }
+                console.log(lis)
+                res.status(200).send(lis);
+            })
+          })
+      })
+
 router.route('/')
 .options(cors.corsWithOptions,(req,res)=>{res.sendStatus(200)})
-.get(cors.cors,authenticate,(req,res)=>{
-    console.log(req.username)
-    const sql = 'select * from post where username = ?'
-    con.query(sql,[req.username],function (err,result,field){
-        res.status(200).send(result);
+.post(cors.cors,authenticate,(req,res)=>{
+    const sql = 'select post.*,user.dp from post inner join user on user.username=post.username where post.username = ?'
+    con.query(sql,[req.username],function (err,result1,field){
+        const sql2 = 'select count(*) as likes from likes where postid in (select postid from post where username=? ) group by postid'
+        con.query(sql2,[req.username],function (err,result2,field){
+            console.log(result1,result2)
+            var lis = []
+            for(let i=0;i<result1.length;i++)
+            {
+                var data = (Object.assign(result1[i],Object.assign({},result2[i])))
+                lis.push(data);
+            }
+            console.log(lis)
+            res.status(200).send(lis);
+        })
 
     })
 })
+
+router.route('/addpost')
+.options(cors.corsWithOptions,(req,res)=>{res.sendStatus(200)})
 .post(cors.cors,authenticate,(req,res)=>{
     const sql = 'insert into post(username,img,caption,private) values(?,?,?,?)'
     var values = [req.username,req.body.img,req.body.caption,req.body.private]

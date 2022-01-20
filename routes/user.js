@@ -7,6 +7,16 @@ var config = require('../config')
 var mysql = require('mysql');
 var cors = require('./cors')
 const authenticate = require('../authenticate');
+// var cloudinary = require('cloudinary').v2;
+
+// cloudinary.config({ 
+//     cloud_name: config.cloud_name, 
+//     api_key: config.api_key, 
+//     api_secret: config.api_secret 
+//   });
+
+// cloudinary.uploader.destroy('y4zzvl0e8gk6n24gef15', function(result) { console.log(result,'done') });
+
 
 var con = mysql.createConnection({
   host: "localhost",
@@ -85,6 +95,20 @@ con.connect(function(err) { //to connect to the database
       })
 
       });
+
+
+      router.route('/')
+      .post(cors.cors,(req,res)=>{
+        const sql = 'select u.* , count(f.username),count(ff.username) from user u, followers f,followers ff where u.username=? and f.username=? and ff.follower = ?'
+        con.query(sql,[req.body.username,req.body.username,req.body.username],(err,result)=>{
+          if (err) res.status(500)
+          resp =  {username:result[0].username,dp:result[0].dp,followers:result[0]['count(f.username)'],following:result[0]['count(ff.username)'],place:result[0].place,bio:result[0].bio,private:result[0].private,name:result[0].name}
+          console.log(resp)
+          res.status(200).json(resp)
+      })
+
+      });
+
     })
 })
 
