@@ -112,7 +112,7 @@ con.connect(function(err) { //to connect to the database
       router.route('/notifications')
       .post(cors.cors,authenticate,(req,res)=>{
         // const sql = 'insert into requests values(?,?)';
-        const sql = 'select * from notifications where receiver=?';
+        const sql = 'select * from notifications where receiver=? order by created_at desc';
         con.query(sql,[req.username],(err,result)=>{
           if (err) res.status(500);
           else
