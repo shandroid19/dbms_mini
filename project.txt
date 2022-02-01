@@ -1,13 +1,51 @@
-create table user values(username varchar(20) primary key not null,password varchar(255), name varchar(30) default null,bio varchar(255),dp varchar(255),private boolean);
+create table user values(username varchar(20) primary key not null,password varchar(255), name varchar(30) default null,bio varchar(255),dp varchar(255),private boolean, place varchar(30));
 
-create table notifications(username varchar(20) references user(username) on delete cascade,type integer(1),receiver varchar(20) references user(username) on delete cascade, primary key(receiver),created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+create table notifications(username varchar(20) references user(username),postid integer(10) references post(postid),type integer(1),receiver varchar(20) references user(username) ,dp varchar(255) references user(dp),created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 
-create table post(username varchar(20) references user(username) on delete cascade, postid integer(10) primary key auto_increment, img varchar(255),caption varchar(255),private boolean,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+create table post(username varchar(20) references user(username), postid integer(10) primary key auto_increment, img varchar(255),caption varchar(255),private boolean,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 
-create table comments(postid integer(10) references post(postid) on delete cascade,username varchar(20) references user(username) on delete cascade,comment varchar(255),created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+create table comments(postid integer(10) references post(postid),commentid integer(10) primary key auto_increment,username varchar(20) references user(username) ,comment varchar(255),created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
 
-create table likes(postid integer(10) references post(postid) on delete cascade,username varchar(20) references user(username) on delete cascade);
+create table likes(postid integer(10) references post(postid) ,username varchar(20) references user(username) ,primary key(postid,username));
 
-create table followers(username varchar(20) references user(username) on delete cascade,follower varchar(20) references user(username) on delete cascade);
+create table followers(username varchar(20) references user(username) ,follower varchar(20) references user(username),status boolean,primary key(username,follower));
 
-create table requests(to varchar(20) references user(username) on delete cascade,from varchar(20) references user(username) on delete cascade,created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP);
+
+
+-- type 0-requested,1-following,2-liked,3-commented
+
+
+CREATE TRIGGER follow_notification AFTER INSERT on followers for each row
+insert into notifications(username,postid,type,receiver,dp) select
+new.follower,0,new.status,new.username,(select dp from user where username=new.follower) where new.username<>new.follower;
+
+CREATE TRIGGER comment_notification AFTER INSERT on comments for each row 
+insert into notifications(username,postid,type,receiver,dp) select
+new.username,new.postid,3,(select username from post where postid=new.postid),(select dp from user where username=new.username) where new.username not in (select username from post where postid=new.postid);
+
+--CREATE TRIGGER like_notification AFTER INSERT on likes for each row
+--insert into notifications(username,postid,type,receiver,dp) values
+--(new.username,new.postid,2,(select username from post where postid=new.postid),(select dp --from user where username=new.username));
+
+CREATE TRIGGER insert_followers AFTER INSERT on user for each row
+insert into followers values(NEW.username,NEW.username,1);
+
+CREATE TRIGGER like_notification AFTER INSERT on likes for each row
+insert into notifications(username,postid,type,receiver,dp) select
+new.username,new.postid,2,(select username from post where postid=new.postid),(select dp from user where username=new.username) where new.username not in (select username from post where postid=new.postid);
+
+DELIMITER @@; 
+CREATE TRIGGER delete_all BEFORE DELETE on user for each row
+BEGIN
+	DELETE from followers where username=OLD.username or follower=OLD.username;
+	DELETE from notifications where receiver=OLD.username or username=OLD.username;
+	DELETE from post where username=OLD.username;
+	DELETE from comments where username=OLD.username OR postid in (select postid from post where username=OLD.username);
+	DELETE from likes where username=OLD.username OR postid in (select postid from post where username=OLD.username);
+END;
+@@; 
+
+DELIMITER ;
+
+
+

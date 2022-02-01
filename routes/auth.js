@@ -20,7 +20,7 @@ con.connect(function(err) { //to connect to the database
     if (err) throw err;
     con.query("use social", function (err, result,fields) {
       if (err) throw err;
-        console.log('using');
+        console.log('connected to social database');
       });
 
     router.route('/checkname')
@@ -48,15 +48,19 @@ con.connect(function(err) { //to connect to the database
         }
         resolve(req.body.username)
         }).then((user, err)=>{
-
-          const sql2 = 'insert into followers values(?,?)'
-          con.query(sql2,[user,user],(err)=>{
-            if (err) return res.status(500).send("There was a problem registering the user.")
             // create a token
-            var token = jwt.sign({ username: user }, config.client_secret, {
+            var token = jwt.sign({ id: user }, config.client_secret, {
               expiresIn: 86400 // expires in 24 hours
             });
-            res.status(200).send({ auth: true, token: token });
+            const sql3 = 'select * from user where username = ?'
+            con.query(sql3,[user],(err,result3)=>{
+              if(err) return res.status(500).send("there was a problem registering the user")
+              delete result3[0].password
+              res.status(200).send({ auth: true,
+                token: token ,
+                user: result3[0]
+                });              
+            
 
           })
       })
@@ -67,16 +71,6 @@ con.connect(function(err) { //to connect to the database
 
 router.post('/verify',cors.cors,authenticate, function(req, res) {
   res.status(200).send({auth:true,message:'logged in succesfully'})
-  // var token = req.headers['x-access-token'];
-  // console.log(req.headers.authorization)
-  // if (!token) return res.status(401).send({ auth: false, message: 'No token provided.' });
-  
-  // jwt.verify(token, config.client_secret, function(err, decoded) {
-  //   if (err) return res.status(500).send({ auth: false, message: 'Failed to authenticate token.' });
-  //   else 
-  //     res.status({auth:true,message:'successfully logged in'})
-    // res.status(200).send(decoded);
-  // });
 });
 
 router.options(cors.corsWithOptions,(req,res)=>{res.sendStatus(200)})
@@ -94,7 +88,6 @@ router.post('/login',cors.corsWithOptions, function(req, res) {
         if (err) {
             return reject(err);
     }
-    console.log(result[0])
     resolve(result[0])
     }).then((user, err)=>{
       if (err) return res.status(500).send('Error on the server.');
@@ -102,7 +95,6 @@ router.post('/login',cors.corsWithOptions, function(req, res) {
       // var passwordIsValid = bcrypt.compareSync(req.body.password,user.password);
       var passwordIsValid = bcrypt.compareSync(req.body.password,user.password);
 
-      console.log(passwordIsValid)
       delete user.password
       if (!passwordIsValid) return res.status(401).send({ auth: false, token: null });
       
